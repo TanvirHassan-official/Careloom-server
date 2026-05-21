@@ -3,21 +3,12 @@ const app = express();
 require("dotenv").config();
 const port = process.env.PORT || 8000;
 const cors = require("cors");
+
 app.use(cors());
-app.get('/', (req, res) => {
-  res.send('Hello world!');
-});
-
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
-});
-
-
-
+app.use(express.json());
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = process.env.MONGO_URI;
-
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -27,40 +18,54 @@ const client = new MongoClient(uri, {
   }
 });
 
-async function run() {
-  try {
+let isConnected = false;
 
-    await client.connect();
-    
-    const db = client.db("careloom");
-    const doctorCollection = db.collection("Doctors");
-    
-    //All doctor
-    app.get("/doctors", async (req, res)=>{
-        const cursor = doctorCollection.find();
-        const result = await cursor.toArray();
-
-        res.send(result);
-    })
-
-    // SIngle doctor
-    app.get("/doctors/:doctorId", async (req, res)=>{
-        const doctorId = req.params.doctorId;
-        const query = { _id: new ObjectId(doctorId)};
-        
-        const result = await doctorCollection.findOne(query);
-
-        res.send(result);
-    })
-
-
-
-
-    //await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
-  }
+async function connectDB() {
+  if (isConnected) return;
+  await client.connect();
+  isConnected = true;
+  console.log("Connected to MongoDB");
 }
-run().catch(console.dir);
+
+
+const asyncHandler = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+app.get('/', (req, res) => {
+  res.send('Hello world!');
+});
+
+async function run() {
+  await connectDB();
+
+  const db = client.db("careloom");
+  const doctorCollection = db.collection("Doctors");
+
+  app.get("/doctors", asyncHandler(async (req, res) => {
+    const result = await doctorCollection.find().toArray();
+    res.send(result);
+  }));
+
+  app.get("/doctors/:doctorId", asyncHandler(async (req, res) => {
+    const query = { _id: new ObjectId(req.params.doctorId) };
+    const result = await doctorCollection.findOne(query);
+    res.send(result);
+  }));
+
+  // Add all future POST, PATCH, DELETE routes here the same way...
+  // app.post("/appointments", asyncHandler(async (req, res) => { ... }));
+  // app.delete("/appointments/:id", asyncHandler(async (req, res) => { ... }));
+}
+
+run().catch(console.error);
+
+// error handler for alll routes
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send({ error: err.message || "Something went wrong" });
+});
+
+app.listen(port, () => {
+  console.log(`Server listening on port ${port}`);
+});
