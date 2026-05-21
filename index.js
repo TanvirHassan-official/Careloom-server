@@ -21,9 +21,8 @@ const client = new MongoClient(uri, {
 let isConnected = false;
 
 async function connectDB() {
-  if (isConnected) return;
+  if (client.topology?.isConnected()) return;
   await client.connect();
-  isConnected = true;
   console.log("Connected to MongoDB");
 }
 
