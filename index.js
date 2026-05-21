@@ -106,6 +106,12 @@ async function run() {
     const specialties = await doctorCollection.distinct("specialty");
     res.send(specialties);
   }));
+  app.get("/doctors/category/specialties", asyncHandler(async (req, res) => {
+    const specialties = await doctorCollection.
+    filter("specialty")
+    .toArray();
+    res.send(specialties);
+  }));
 
   // GET /doctors/category/:specialty — all doctors in a specialty
   app.get("/doctors/category/:specialty", asyncHandler(async (req, res) => {
