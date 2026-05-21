@@ -18,11 +18,28 @@ const client = new MongoClient(uri, {
   }
 });
 
+// async function connectDB() {
+//   if (client.topology?.isConnected()) return;
+//   await client.connect();
+//   console.log("Connected to MongoDB");
+// }
+
+
+let cachedDb = null;
+
 async function connectDB() {
-  if (client.topology?.isConnected()) return;
+  if (cachedDb && client.topology?.isConnected()) {
+    return cachedDb;
+  }
+
   await client.connect();
-  console.log("Connected to MongoDB");
+  cachedDb = client.db("careloom");
+  console.log("MongoDB connected");
+  return cachedDb;
 }
+
+
+
 
 const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -33,9 +50,8 @@ app.get('/', (req, res) => {
 });
 
 async function run() {
-  await connectDB();
 
-  const db = client.db("careloom");
+  const db = await connectDB();
   const doctorCollection = db.collection("Doctors");
   const appointmentCollection = db.collection("Appointments");
 
