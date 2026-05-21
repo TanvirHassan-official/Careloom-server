@@ -32,9 +32,12 @@ async function connectDB() {
     return cachedDb;
   }
 
-  await client.connect();
-  cachedDb = client.db("careloom");
-  console.log("MongoDB connected");
+  if (!cachedDb) {
+    await client.connect();
+    cachedDb = client.db("careloom");
+    console.log("MongoDB connected");
+  }
+
   return cachedDb;
 }
 
