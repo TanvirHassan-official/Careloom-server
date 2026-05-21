@@ -20,11 +20,11 @@ const client = new MongoClient(uri, {
 
 let isConnected = false;
 
-async function connectDB() {
-  if (client.topology?.isConnected()) return;
-  await client.connect();
-  console.log("Connected to MongoDB");
-}
+// async function connectDB() {
+//   if (client.topology?.isConnected()) return;
+//   await client.connect();
+//   console.log("Connected to MongoDB");
+// }
 
 
 const asyncHandler = (fn) => (req, res, next) => {
@@ -36,7 +36,8 @@ app.get('/', (req, res) => {
 });
 
 async function run() {
-  await connectDB();
+  // await connectDB();
+await client.connect()
 
   const db = client.db("careloom");
   const doctorCollection = db.collection("Doctors");
