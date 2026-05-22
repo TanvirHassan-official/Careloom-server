@@ -152,7 +152,9 @@ async function run() {
   }));
  
   // GET /appointments?email=user@email.com — bookings for logged-in user
-  app.get("/appointments",verifyToken, asyncHandler(async (req, res) => {
+  app.get("/appointments",
+    // verifyToken, 
+    asyncHandler(async (req, res) => {
     const { email } = req.query;
  
     if (!email) {
@@ -176,7 +178,9 @@ async function run() {
   }));
  
   // PATCH /appointments/:id — update an appointment
-  app.patch("/appointments/:id",verifyToken, asyncHandler(async (req, res) => {
+  app.patch("/appointments/:id",
+    // verifyToken, 
+    asyncHandler(async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
  
