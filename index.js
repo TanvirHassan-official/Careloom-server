@@ -3,7 +3,8 @@ const app = express();
 require("dotenv").config();
 const port = process.env.PORT || 8000;
 const cors = require("cors");
- 
+const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
+
 app.use(cors());
 app.use(express.json());
  
@@ -17,7 +18,27 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
- 
+const JWKS = createRemoteJWKSet(new URL(`${process.env.CLIENT_URL}/api/auth/jwks`));
+
+const verifyToken = async (req, res, next) => {
+  const authHeader = req?.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  const token = authHeader.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+    console.log(payload);
+    next();
+  } catch (error) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+};
+
 let cachedDb = null;
  
 async function connectDB() {
@@ -47,7 +68,7 @@ async function run() {
   // DOCTOR ROUTES
   // ─────────────────────────────────────────
  
-  // GET /doctors — all doctors (supports ?search=name &specialty=X &sort=rating|fee_asc|fee_desc)
+  // GET /doctors — all doctors (supports ?search=name &sort=rating|fee_asc|fee_desc)
   app.get("/doctors", asyncHandler(async (req, res) => {
     const { search, specialty, sort } = req.query;
     const query = {};
@@ -109,9 +130,9 @@ async function run() {
     res.send(result);
   }));
  
-  // ─────────────────────────────────────────
+
   // APPOINTMENT ROUTES
-  // ─────────────────────────────────────────
+
  
   // POST /appointments — book a new appointment
   app.post("/appointments", asyncHandler(async (req, res) => {
@@ -131,7 +152,7 @@ async function run() {
   }));
  
   // GET /appointments?email=user@email.com — bookings for logged-in user
-  app.get("/appointments", asyncHandler(async (req, res) => {
+  app.get("/appointments",verifyToken, asyncHandler(async (req, res) => {
     const { email } = req.query;
  
     if (!email) {
@@ -155,7 +176,7 @@ async function run() {
   }));
  
   // PATCH /appointments/:id — update an appointment
-  app.patch("/appointments/:id", asyncHandler(async (req, res) => {
+  app.patch("/appointments/:id",verifyToken, asyncHandler(async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
  
@@ -178,7 +199,7 @@ async function run() {
   }));
  
   // DELETE /appointments/:id — delete an appointment
-  app.delete("/appointments/:id", asyncHandler(async (req, res) => {
+  app.delete("/appointments/:id",verifyToken, asyncHandler(async (req, res) => {
     const query = { _id: new ObjectId(req.params.id) };
     const result = await appointmentCollection.deleteOne(query);
  
